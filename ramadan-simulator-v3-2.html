@@ -1,0 +1,1708 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌙 محاكي رمضان المطوّر</title>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold:#D4A853; --gold-light:#F5D78E; --gold-dark:#A07830;
+  --night:#050F1A; --teal:#0F4C5C; --teal-deep:#0A2E3D;
+  --green:#27AE60; --red:#C0392B; --purple:#8E44AD;
+  --hunger:#E74C3C; --thirst:#3498DB; --worship:#9B59B6; --energy:#F39C12;
+  --blue:#2980B9; --orange:#E67E22;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Cairo',sans-serif;background:var(--night);color:#EEE;min-height:100vh;overflow-x:hidden;}
+
+/* ── STARS ── */
+#stars-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;}
+
+/* ── WRAPPER ── */
+.gw{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:12px 14px 80px;}
+
+/* ── TOP NAV ── */
+.top-nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 0 6px;
+}
+.game-title{font-family:'Amiri',serif;font-size:1.8rem;color:var(--gold);text-shadow:0 0 18px rgba(212,168,83,.5);}
+.nav-icons{display:flex;gap:8px;}
+.nav-btn{
+  background:rgba(255,255,255,.06);border:1px solid rgba(212,168,83,.25);
+  border-radius:10px;padding:7px 10px;cursor:pointer;font-size:1.1rem;
+  transition:.2s;color:#EEE;
+}
+.nav-btn:hover{background:rgba(212,168,83,.15);border-color:rgba(212,168,83,.5);}
+
+/* ── COINS ── */
+.coins-bar{
+  display:flex;align-items:center;gap:6px;
+  background:linear-gradient(135deg,rgba(212,168,83,.18),rgba(212,168,83,.06));
+  border:1px solid rgba(212,168,83,.3);border-radius:50px;
+  padding:6px 14px;margin-bottom:8px;
+}
+.coins-icon{font-size:1.2rem;}
+.coins-label{font-size:.72rem;color:var(--gold-light);opacity:.7;}
+.coins-val{font-size:1rem;font-weight:900;color:var(--gold);margin-right:auto;}
+
+/* ── TIME BAR ── */
+.time-bar{
+  background:rgba(255,255,255,.05);border:1px solid rgba(212,168,83,.2);
+  border-radius:50px;padding:8px 16px;display:flex;
+  align-items:center;justify-content:space-between;margin:8px 0;
+  backdrop-filter:blur(10px);
+}
+.time-icon{font-size:1.4rem;}
+.time-info{text-align:center;}
+.time-label{font-size:.7rem;color:var(--gold-light);opacity:.7;}
+.time-value{font-size:1rem;font-weight:700;color:var(--gold);}
+.day-counter{font-size:.85rem;color:var(--gold-light);}
+
+/* ── PRAYER TIMER ── */
+.prayer-timer{
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;padding:9px 14px;margin:6px 0;display:flex;align-items:center;gap:10px;
+}
+.prayer-timer-label{font-size:.7rem;color:var(--gold-light);opacity:.7;white-space:nowrap;}
+.prayer-progress{flex:1;background:rgba(255,255,255,.1);border-radius:10px;height:6px;overflow:hidden;}
+.prayer-progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light));border-radius:10px;transition:width .5s ease;}
+.prayer-time-left{font-size:.73rem;font-weight:700;color:var(--gold);white-space:nowrap;}
+
+/* ── SCORE ── */
+.score-display{
+  text-align:center;
+  background:linear-gradient(135deg,rgba(212,168,83,.15),rgba(212,168,83,.05));
+  border:1px solid rgba(212,168,83,.3);border-radius:14px;padding:10px;margin:8px 0;
+}
+.score-label{font-size:.7rem;color:var(--gold-light);opacity:.7;}
+.score-number{font-size:2rem;font-weight:900;color:var(--gold);text-shadow:0 0 15px rgba(212,168,83,.4);}
+.score-title{font-size:.72rem;color:var(--gold-light);}
+
+/* ── STATS ── */
+.stats-panel{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0;}
+.stat-card{
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;padding:10px 12px;position:relative;overflow:hidden;
+}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card.hunger::before{background:var(--hunger);}
+.stat-card.thirst::before{background:var(--thirst);}
+.stat-card.worship::before{background:var(--worship);}
+.stat-card.energy::before{background:var(--energy);}
+.stat-label{font-size:.7rem;opacity:.65;display:flex;align-items:center;gap:5px;margin-bottom:6px;}
+.stat-bar-bg{background:rgba(255,255,255,.1);border-radius:10px;height:8px;overflow:hidden;}
+.stat-bar-fill{height:100%;border-radius:10px;transition:width .5s ease;}
+.stat-value{font-size:.72rem;font-weight:700;margin-top:4px;}
+/* warn glow when critical */
+.stat-card.critical{animation:critWarn 1s infinite alternate;}
+@keyframes critWarn{to{box-shadow:0 0 12px rgba(231,76,60,.6);border-color:rgba(231,76,60,.5);}}
+
+/* ── EQUIPPED BADGE ── */
+.equipped-bar{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
+  border-radius:12px;padding:8px 12px;margin:6px 0;
+  font-size:.75rem;
+}
+.eq-icon{font-size:1.4rem;}
+.eq-label{opacity:.55;font-size:.68rem;}
+.eq-bonus{color:var(--green);font-size:.68rem;margin-right:auto;}
+
+/* ── SCENE ── */
+.scene{
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
+  border-radius:20px;padding:18px;margin:10px 0;text-align:center;
+  min-height:130px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;position:relative;overflow:hidden;
+}
+.scene-bg{position:absolute;inset:0;opacity:.04;font-size:8rem;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.scene-emoji{font-size:3.5rem;margin-bottom:6px;animation:flt 3s ease-in-out infinite;}
+@keyframes flt{0%,100%{transform:translateY(0);}50%{transform:translateY(-7px);}}
+.scene-text{font-size:1rem;color:var(--gold-light);font-weight:600;}
+.scene-sub{font-size:.78rem;opacity:.6;margin-top:4px;}
+
+/* ── EVENT CARD ── */
+.event-card{
+  background:linear-gradient(135deg,rgba(212,168,83,.15),rgba(212,168,83,.05));
+  border:1px solid rgba(212,168,83,.4);border-radius:16px;
+  padding:14px 16px;margin:10px 0;display:none;animation:slideIn .4s ease;
+}
+.event-card.active{display:block;}
+@keyframes slideIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.event-title{font-size:.88rem;font-weight:700;color:var(--gold);margin-bottom:6px;}
+.event-desc{font-size:.76rem;opacity:.8;margin-bottom:10px;line-height:1.5;}
+.event-choices{display:flex;gap:8px;flex-wrap:wrap;}
+.event-choice{
+  flex:1;min-width:90px;background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.15);border-radius:10px;
+  padding:8px 8px;cursor:pointer;font-family:'Cairo',sans-serif;
+  font-size:.72rem;color:white;transition:.2s;text-align:center;
+}
+.event-choice:hover{background:rgba(212,168,83,.2);border-color:var(--gold);}
+
+/* ── ACTIONS ── */
+.actions-title{text-align:center;font-size:.78rem;color:var(--gold-light);opacity:.7;margin:10px 0 7px;}
+.actions-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px;}
+.action-btn{
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  border-radius:13px;padding:11px 5px;cursor:pointer;transition:all .2s;
+  text-align:center;color:white;font-family:'Cairo',sans-serif;position:relative;overflow:hidden;
+}
+.action-btn:active{transform:scale(.95);}
+.action-btn:hover{background:rgba(212,168,83,.15);border-color:rgba(212,168,83,.4);transform:translateY(-2px);box-shadow:0 6px 18px rgba(212,168,83,.15);}
+.action-btn.disabled{opacity:.3;cursor:not-allowed;pointer-events:none;}
+.action-emoji{font-size:1.5rem;display:block;margin-bottom:3px;}
+.action-name{font-size:.67rem;font-weight:600;}
+.action-cost{font-size:.57rem;opacity:.5;margin-top:2px;}
+.action-btn.worship-btn{background:rgba(155,89,182,.1);border-color:rgba(155,89,182,.3);}
+.action-btn.food-btn{background:rgba(231,76,60,.08);border-color:rgba(231,76,60,.2);}
+.action-btn.social-btn{background:rgba(39,174,96,.08);border-color:rgba(39,174,96,.2);}
+/* bonus glow from shop items */
+.action-btn.boosted::after{
+  content:'⬆';position:absolute;top:4px;left:4px;font-size:.6rem;
+  color:var(--green);text-shadow:0 0 6px var(--green);
+}
+
+/* ── LOG ── */
+.log-panel{
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
+  border-radius:14px;padding:12px;margin:10px 0;max-height:110px;overflow-y:auto;
+}
+.log-title{font-size:.68rem;color:var(--gold-light);opacity:.6;margin-bottom:7px;}
+.log-entry{font-size:.7rem;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);opacity:.75;display:flex;gap:6px;}
+.log-entry:last-child{border-bottom:none;}
+.log-time{color:var(--gold);opacity:.7;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:rgba(212,168,83,.3);border-radius:4px;}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:480px;
+  background:rgba(5,15,26,.96);border-top:1px solid rgba(212,168,83,.2);
+  display:flex;justify-content:space-around;padding:8px 0 10px;
+  z-index:200;backdrop-filter:blur(16px);
+}
+.bnav-btn{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  cursor:pointer;padding:6px 14px;border-radius:12px;transition:.2s;
+  font-family:'Cairo',sans-serif;color:rgba(255,255,255,.5);font-size:.63rem;border:none;background:none;
+}
+.bnav-btn.active{color:var(--gold);}
+.bnav-btn .bicon{font-size:1.3rem;}
+.bnav-btn .bnav-badge{
+  position:absolute;top:-2px;right:-4px;background:var(--red);
+  border-radius:50%;width:14px;height:14px;font-size:.5rem;
+  display:flex;align-items:center;justify-content:center;font-weight:700;color:white;
+}
+.bnav-rel{position:relative;}
+
+/* ════════════════════════════════
+   OVERLAYS (shop, settings, adhan, gameover)
+════════════════════════════════ */
+.overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;
+  display:none;flex-direction:column;align-items:center;
+  backdrop-filter:blur(14px);overflow-y:auto;
+}
+.overlay.show{display:flex;}
+.overlay-inner{
+  width:100%;max-width:480px;padding:16px;
+  animation:olvIn .35s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes olvIn{from{transform:translateY(30px);opacity:0;}to{transform:none;opacity:1;}}
+.overlay-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 0 10px;border-bottom:1px solid rgba(212,168,83,.2);margin-bottom:14px;
+}
+.overlay-title{font-family:'Amiri',serif;font-size:1.6rem;color:var(--gold);}
+.close-btn{
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
+  border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:1rem;
+  color:#EEE;display:flex;align-items:center;justify-content:center;transition:.2s;
+}
+.close-btn:hover{background:rgba(212,168,83,.2);}
+
+/* ── SHOP ── */
+.shop-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.shop-tab{
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  border-radius:20px;padding:6px 14px;cursor:pointer;font-size:.75rem;
+  transition:.2s;color:rgba(255,255,255,.6);font-family:'Cairo',sans-serif;
+}
+.shop-tab.active{background:rgba(212,168,83,.2);border-color:var(--gold);color:var(--gold);}
+.shop-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.shop-item{
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  border-radius:16px;padding:14px;text-align:center;cursor:pointer;
+  transition:all .2s;position:relative;overflow:hidden;
+}
+.shop-item::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,transparent,rgba(255,255,255,.03));
+  pointer-events:none;
+}
+.shop-item:hover{border-color:rgba(212,168,83,.4);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.4);}
+.shop-item.owned{border-color:rgba(39,174,96,.4);background:rgba(39,174,96,.08);}
+.shop-item.equipped{border-color:var(--gold);background:rgba(212,168,83,.12);box-shadow:0 0 16px rgba(212,168,83,.2);}
+.shop-item.locked{opacity:.5;cursor:not-allowed;}
+.item-emoji{font-size:2.5rem;display:block;margin-bottom:8px;}
+.item-name{font-size:.8rem;font-weight:700;margin-bottom:4px;}
+.item-desc{font-size:.67rem;opacity:.65;line-height:1.4;margin-bottom:8px;}
+.item-effect{font-size:.65rem;color:var(--green);margin-bottom:8px;}
+.item-price{
+  display:inline-flex;align-items:center;gap:4px;
+  background:rgba(212,168,83,.15);border:1px solid rgba(212,168,83,.3);
+  border-radius:20px;padding:4px 10px;font-size:.75rem;font-weight:700;color:var(--gold);
+}
+.item-badge{
+  position:absolute;top:8px;right:8px;
+  background:var(--red);border-radius:6px;padding:2px 6px;
+  font-size:.6rem;font-weight:700;color:white;
+}
+.item-badge.new-badge{background:var(--orange);}
+.item-badge.sale-badge{background:var(--green);}
+.equip-btn{
+  width:100%;margin-top:8px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));
+  color:var(--night);border:none;border-radius:8px;padding:7px;
+  font-family:'Cairo',sans-serif;font-size:.75rem;font-weight:700;cursor:pointer;
+  transition:.2s;
+}
+.equip-btn:hover{opacity:.85;}
+.equip-btn.owned-btn{background:linear-gradient(135deg,var(--green),#1e8449);}
+.equip-btn.equipped-btn{background:linear-gradient(135deg,#c0392b,#922b21);color:white;}
+
+/* ── SETTINGS ── */
+.settings-section{margin-bottom:18px;}
+.settings-title-sm{font-size:.8rem;color:var(--gold-light);opacity:.7;margin-bottom:10px;font-weight:600;}
+.setting-row{
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;padding:12px 14px;margin-bottom:7px;
+}
+.setting-label{font-size:.82rem;}
+.setting-sub{font-size:.68rem;opacity:.5;margin-top:2px;}
+.toggle{
+  width:44px;height:24px;background:rgba(255,255,255,.15);border-radius:12px;
+  position:relative;cursor:pointer;transition:.3s;flex-shrink:0;
+}
+.toggle.on{background:var(--green);}
+.toggle::after{
+  content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;
+  background:white;border-radius:50%;transition:.3s;box-shadow:0 2px 6px rgba(0,0,0,.3);
+}
+.toggle.on::after{left:22px;}
+.speed-btns{display:flex;gap:6px;}
+.speed-btn{
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
+  border-radius:8px;padding:5px 12px;cursor:pointer;font-size:.75rem;
+  transition:.2s;font-family:'Cairo',sans-serif;color:#EEE;
+}
+.speed-btn.active{background:rgba(212,168,83,.2);border-color:var(--gold);color:var(--gold);}
+.difficulty-btns{display:flex;gap:6px;flex-wrap:wrap;}
+.diff-btn{
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
+  border-radius:8px;padding:5px 14px;cursor:pointer;font-size:.75rem;
+  transition:.2s;font-family:'Cairo',sans-serif;color:#EEE;
+}
+.diff-btn.active{background:rgba(212,168,83,.2);border-color:var(--gold);color:var(--gold);}
+
+/* ── ADHAN OVERLAY ── */
+#adhan-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:900;
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  backdrop-filter:blur(16px);text-align:center;padding:20px;
+}
+#adhan-overlay.show{display:flex;animation:fadeI .6s ease;}
+@keyframes fadeI{from{opacity:0;}to{opacity:1;}}
+.adhan-moon{font-size:5rem;animation:adPulse 1.2s ease-in-out infinite;}
+@keyframes adPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.1);}}
+.adhan-wave{display:flex;justify-content:center;gap:6px;margin:12px 0;}
+.adhan-wave span{
+  display:block;width:5px;height:30px;background:var(--gold);border-radius:4px;
+  animation:wave var(--d,.8s) ease-in-out infinite alternate;
+}
+@keyframes wave{from{height:8px;opacity:.4;}to{height:34px;opacity:1;}}
+.adhan-text{font-family:'Amiri',serif;font-size:2.2rem;color:var(--gold);margin:10px;text-shadow:0 0 30px rgba(212,168,83,.8);}
+.adhan-arabic{font-family:'Amiri',serif;font-size:1.1rem;color:var(--gold-light);opacity:.8;margin-bottom:8px;line-height:1.8;}
+.adhan-sub{color:var(--gold-light);font-size:.95rem;opacity:.75;margin-bottom:20px;}
+.adhan-btn{
+  background:var(--gold);color:var(--night);border:none;border-radius:50px;
+  padding:12px 32px;font-family:'Cairo',sans-serif;font-size:1rem;font-weight:700;
+  cursor:pointer;transition:.2s;box-shadow:0 6px 20px rgba(212,168,83,.4);
+}
+.adhan-btn:hover{background:var(--gold-light);}
+
+/* ── GAMEOVER ── */
+#gameover-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:800;
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  backdrop-filter:blur(16px);text-align:center;padding:20px;
+}
+#gameover-overlay.show{display:flex;animation:fadeI .5s ease;}
+.gameover-title{font-family:'Amiri',serif;font-size:2.4rem;color:var(--gold);text-shadow:0 0 30px rgba(212,168,83,.5);}
+.gameover-score{font-size:4rem;font-weight:900;color:white;margin:10px 0;}
+.gameover-rank{font-size:1.3rem;color:var(--gold-light);margin-bottom:8px;}
+.gameover-message{font-size:.85rem;opacity:.7;max-width:300px;line-height:1.6;margin-bottom:20px;}
+.restart-btn{
+  background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:var(--night);
+  border:none;border-radius:50px;padding:14px 40px;font-family:'Cairo',sans-serif;
+  font-size:1.05rem;font-weight:900;cursor:pointer;transition:.2s;
+  box-shadow:0 8px 28px rgba(212,168,83,.4);
+}
+.restart-btn:hover{transform:scale(1.05);}
+
+/* ── NOTIFICATION ── */
+.notification{
+  position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-80px);
+  background:rgba(10,46,61,.96);border:1px solid var(--gold);border-radius:12px;
+  padding:10px 20px;font-size:.85rem;font-weight:600;z-index:999;
+  transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+  text-align:center;max-width:300px;backdrop-filter:blur(20px);
+  box-shadow:0 10px 40px rgba(0,0,0,.5);
+}
+.notification.show{transform:translateX(-50%) translateY(0);}
+
+/* ── BADGE ── */
+.badge{
+  display:inline-block;background:rgba(212,168,83,.2);
+  border:1px solid rgba(212,168,83,.4);border-radius:6px;
+  padding:2px 8px;font-size:.65rem;color:var(--gold);margin:2px;
+}
+
+/* ── COIN FLASH ── */
+.coin-flash{
+  position:fixed;top:60px;right:20px;z-index:600;
+  font-size:.85rem;font-weight:700;color:var(--gold);
+  animation:coinUp 1.2s ease-out forwards;pointer-events:none;
+}
+@keyframes coinUp{0%{opacity:1;transform:translateY(0);}100%{opacity:0;transform:translateY(-40px);}}
+
+/* ACTIVE BUFFS */
+.buffs-row{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0;}
+.buff-chip{
+  display:flex;align-items:center;gap:4px;background:rgba(39,174,96,.12);
+  border:1px solid rgba(39,174,96,.3);border-radius:20px;padding:3px 9px;
+  font-size:.65rem;color:#5EFF9A;
+}
+</style>
+</head>
+<body>
+
+<canvas id="stars-canvas"></canvas>
+
+<!-- ══════ ADHAN OVERLAY ══════ -->
+<div id="adhan-overlay">
+  <div class="adhan-moon" id="adhan-moon">🌙</div>
+  <div class="adhan-wave">
+    <span style="--d:.6s"></span><span style="--d:.8s"></span><span style="--d:.5s"></span>
+    <span style="--d:.9s"></span><span style="--d:.7s"></span>
+  </div>
+  <div class="adhan-text" id="adhan-text">آذان المغرب</div>
+  <div class="adhan-arabic" id="adhan-arabic">
+    اللهُ أَكْبَر، اللهُ أَكْبَر<br>
+    أَشْهَدُ أَن لَّا إِلٰهَ إِلَّا الله<br>
+    حَيَّ عَلَى الصَّلَاة • حَيَّ عَلَى الْفَلَاح
+  </div>
+  <div class="adhan-sub" id="adhan-sub">حان وقت الإفطار! 🎉</div>
+  <button class="adhan-btn" id="adhan-btn">الله أكبر 🤲</button>
+</div>
+
+<!-- ══════ GAMEOVER ══════ -->
+<div id="gameover-overlay">
+  <div style="font-size:3rem;margin-bottom:10px;">🌟</div>
+  <div class="gameover-title">رمضان مبارك!</div>
+  <div style="font-size:.85rem;opacity:.5;margin-bottom:5px;">أتممت 30 يوماً من رمضان</div>
+  <div class="gameover-score" id="final-score">0</div>
+  <div class="gameover-rank" id="final-rank"></div>
+  <div class="gameover-message" id="final-message"></div>
+  <div id="badges-earned" style="margin-bottom:18px;"></div>
+  <button class="restart-btn" onclick="startGame()">🔄 العب مجدداً</button>
+</div>
+
+<!-- ══════ NOTIFICATION ══════ -->
+<div class="notification" id="notification"></div>
+
+<!-- ══════ SHOP OVERLAY ══════ -->
+<div class="overlay" id="shop-overlay">
+  <div class="overlay-inner">
+    <div class="overlay-header">
+      <div class="overlay-title">🛍️ متجر رمضان</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="font-size:.82rem;color:var(--gold);font-weight:700;">🪙 <span id="shop-coins-display">0</span></div>
+        <button class="close-btn" onclick="closeOverlay('shop-overlay')">✕</button>
+      </div>
+    </div>
+    <div class="shop-tabs" id="shop-tabs"></div>
+    <div class="shop-grid" id="shop-grid"></div>
+  </div>
+</div>
+
+<!-- ══════ SETTINGS OVERLAY ══════ -->
+<div class="overlay" id="settings-overlay">
+  <div class="overlay-inner">
+    <div class="overlay-header">
+      <div class="overlay-title">⚙️ الإعدادات</div>
+      <button class="close-btn" onclick="closeOverlay('settings-overlay')">✕</button>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-title-sm">🔊 الصوت</div>
+      <div class="setting-row">
+        <div><div class="setting-label">الأصوات والموسيقى</div><div class="setting-sub">أصوات اللعبة والتنبيهات</div></div>
+        <div class="toggle on" id="toggle-sound" onclick="toggleSetting('sound')"></div>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label">أذان المغرب</div><div class="setting-sub">تشغيل الأذان عند الإفطار</div></div>
+        <div class="toggle on" id="toggle-adhan" onclick="toggleSetting('adhan')"></div>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label">تنبيهات الصلاة</div><div class="setting-sub">تذكير عند وقت كل صلاة</div></div>
+        <div class="toggle on" id="toggle-prayers" onclick="toggleSetting('prayers')"></div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-title-sm">⏩ سرعة اللعبة</div>
+      <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:10px;">
+        <div class="setting-label">الوقت يمر بسرعة</div>
+        <div class="speed-btns">
+          <button class="speed-btn" onclick="setSpeed(4)" id="sp-1">بطيء</button>
+          <button class="speed-btn active" onclick="setSpeed(8)" id="sp-2">عادي</button>
+          <button class="speed-btn" onclick="setSpeed(14)" id="sp-3">سريع</button>
+          <button class="speed-btn" onclick="setSpeed(24)" id="sp-4">⚡ أسرع</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-title-sm">🎯 الصعوبة</div>
+      <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:10px;">
+        <div class="setting-sub">تؤثر على سرعة تراكم الجوع والعطش</div>
+        <div class="difficulty-btns">
+          <button class="diff-btn" onclick="setDiff('easy')" id="df-easy">سهل 😊</button>
+          <button class="diff-btn active" onclick="setDiff('normal')" id="df-normal">عادي 🌙</button>
+          <button class="diff-btn" onclick="setDiff('hard')" id="df-hard">صعب 💪</button>
+          <button class="diff-btn" onclick="setDiff('ramadan')" id="df-ramadan">رمضاني 🕌</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-title-sm">🌓 المظهر</div>
+      <div class="setting-row">
+        <div><div class="setting-label">الوضع الليلي الكثيف</div><div class="setting-sub">خلفية داكنة جداً</div></div>
+        <div class="toggle" id="toggle-darkmode" onclick="toggleSetting('darkmode')"></div>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label">إظهار التلميحات</div><div class="setting-sub">شرح تأثير كل فعل</div></div>
+        <div class="toggle on" id="toggle-hints" onclick="toggleSetting('hints')"></div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-title-sm">📊 إحصائياتك</div>
+      <div id="stats-display" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;font-size:.78rem;line-height:2;"></div>
+    </div>
+
+    <div style="margin-top:16px;display:flex;gap:8px;">
+      <button onclick="startGame()" style="flex:1;background:rgba(212,168,83,.15);border:1px solid rgba(212,168,83,.3);border-radius:10px;padding:10px;color:var(--gold);font-family:'Cairo',sans-serif;font-size:.82rem;cursor:pointer;">🔄 إعادة اللعبة</button>
+      <button onclick="resetProgress()" style="flex:1;background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.25);border-radius:10px;padding:10px;color:#ff8888;font-family:'Cairo',sans-serif;font-size:.82rem;cursor:pointer;">🗑️ مسح البيانات</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ MAIN GAME ══════ -->
+<div class="gw">
+  <div class="top-nav">
+    <div class="game-title">🌙 محاكي رمضان</div>
+    <div class="nav-icons">
+      <button class="nav-btn" onclick="openShop()" title="المتجر">🛍️</button>
+      <button class="nav-btn" onclick="openSettings()" title="الإعدادات">⚙️</button>
+    </div>
+  </div>
+
+  <!-- Coins -->
+  <div class="coins-bar">
+    <span class="coins-icon">🪙</span>
+    <span class="coins-label">عملاتك الرمضانية</span>
+    <span class="coins-val" id="coins-display">0</span>
+    <span style="font-size:.65rem;opacity:.4;margin-right:4px;">عملة</span>
+  </div>
+
+  <!-- Time -->
+  <div class="time-bar">
+    <div class="time-icon" id="time-icon">🌙</div>
+    <div class="time-info">
+      <div class="time-label">الوقت</div>
+      <div class="time-value" id="time-display">03:00</div>
+    </div>
+    <div style="text-align:center">
+      <div class="time-label">المرحلة</div>
+      <div class="time-value" id="phase-display">سحور</div>
+    </div>
+    <div class="day-counter">اليوم <span id="day-display">1</span>/30</div>
+  </div>
+
+  <!-- Prayer Timer -->
+  <div class="prayer-timer">
+    <div class="prayer-timer-label" id="next-prayer-label">الإفطار بعد</div>
+    <div class="prayer-progress">
+      <div class="prayer-progress-fill" id="prayer-progress" style="width:50%"></div>
+    </div>
+    <div class="prayer-time-left" id="prayer-time-left">00:00</div>
+  </div>
+
+  <!-- Score -->
+  <div class="score-display">
+    <div class="score-label">ثواب ورصيد</div>
+    <div class="score-number">⭐ <span id="score-display">0</span></div>
+    <div class="score-title" id="rank-title">مسلم مبتدئ</div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-panel">
+    <div class="stat-card hunger" id="card-hunger">
+      <div class="stat-label">🍽️ الجوع</div>
+      <div class="stat-bar-bg"><div class="stat-bar-fill" id="hunger-bar" style="width:20%;background:var(--hunger)"></div></div>
+      <div class="stat-value" id="hunger-val">20%</div>
+    </div>
+    <div class="stat-card thirst" id="card-thirst">
+      <div class="stat-label">💧 العطش</div>
+      <div class="stat-bar-bg"><div class="stat-bar-fill" id="thirst-bar" style="width:15%;background:var(--thirst)"></div></div>
+      <div class="stat-value" id="thirst-val">15%</div>
+    </div>
+    <div class="stat-card worship" id="card-worship">
+      <div class="stat-label">🤲 العبادة</div>
+      <div class="stat-bar-bg"><div class="stat-bar-fill" id="worship-bar" style="width:50%;background:var(--worship)"></div></div>
+      <div class="stat-value" id="worship-val">50%</div>
+    </div>
+    <div class="stat-card energy" id="card-energy">
+      <div class="stat-label">⚡ الطاقة</div>
+      <div class="stat-bar-bg"><div class="stat-bar-fill" id="energy-bar" style="width:80%;background:var(--energy)"></div></div>
+      <div class="stat-value" id="energy-val">80%</div>
+    </div>
+  </div>
+
+  <!-- Active Buffs -->
+  <div class="buffs-row" id="buffs-row"></div>
+
+  <!-- Equipped Item -->
+  <div class="equipped-bar" id="equipped-bar" style="display:none;">
+    <span class="eq-icon" id="eq-icon">📿</span>
+    <div>
+      <div id="eq-name" style="font-size:.78rem;font-weight:600;"></div>
+      <div class="eq-label" id="eq-label"></div>
+    </div>
+    <div class="eq-bonus" id="eq-bonus"></div>
+  </div>
+
+  <!-- Scene -->
+  <div class="scene" id="main-scene">
+    <div class="scene-bg" id="scene-bg">🌙</div>
+    <div class="scene-emoji" id="scene-emoji">🌙</div>
+    <div class="scene-text" id="scene-text">مرحباً بك في رمضان المبارك</div>
+    <div class="scene-sub" id="scene-sub">ابدأ يومك بنية صادقة</div>
+  </div>
+
+  <!-- Event Card -->
+  <div class="event-card" id="event-card">
+    <div class="event-title" id="event-title">حدث رمضاني</div>
+    <div class="event-desc" id="event-desc"></div>
+    <div class="event-choices" id="event-choices"></div>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions-title">🎮 اختر فعلك</div>
+  <div class="actions-grid" id="actions-grid"></div>
+
+  <!-- Log -->
+  <div class="log-panel">
+    <div class="log-title">📜 سجل اليوم</div>
+    <div id="log-entries"></div>
+  </div>
+</div>
+
+<!-- ══════ BOTTOM NAV ══════ -->
+<div class="bottom-nav">
+  <button class="bnav-btn active" id="bn-game" onclick="switchTab('game')">
+    <span class="bicon">🌙</span>اللعبة
+  </button>
+  <button class="bnav-btn" id="bn-shop" onclick="openShop()">
+    <div class="bnav-rel">
+      <span class="bicon">🛍️</span>
+      <span class="bnav-badge" id="shop-badge" style="display:none;">!</span>
+    </div>
+    المتجر
+  </button>
+  <button class="bnav-btn" id="bn-stats" onclick="switchTab('stats')">
+    <span class="bicon">📊</span>إحصائيات
+  </button>
+  <button class="bnav-btn" id="bn-settings" onclick="openSettings()">
+    <span class="bicon">⚙️</span>إعدادات
+  </button>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  AUDIO ENGINE (Web Audio API — no files)
+// ══════════════════════════════════════════════
+const AC = { ctx: null, get() {
+  if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (this.ctx.state === 'suspended') this.ctx.resume();
+  return this.ctx;
+}};
+
+function beep(freq, dur=0.1, type='sine', vol=0.15, delay=0) {
+  if (!settings.sound) return;
+  try {
+    const a=AC.get(), o=a.createOscillator(), g=a.createGain();
+    o.type=type; o.frequency.value=freq;
+    g.gain.setValueAtTime(vol, a.currentTime+delay);
+    g.gain.exponentialRampToValueAtTime(0.001, a.currentTime+delay+dur);
+    o.connect(g); g.connect(a.destination);
+    o.start(a.currentTime+delay); o.stop(a.currentTime+delay+dur+.02);
+  } catch(e){}
+}
+
+function playCollect()  { beep(880,.08,'sine',.12); beep(1100,.1,'sine',.1,.06); }
+function playError()    { beep(220,.2,'sawtooth',.14); }
+function playSuccess()  { [523,659,784,1047].forEach((f,i)=>beep(f,.25,'sine',.12,i*.07)); }
+function playPurchase() { beep(660,.12,'triangle',.14); beep(880,.18,'triangle',.12,.1); beep(1100,.2,'sine',.1,.2); }
+function playClick()    { beep(660,.05,'sine',.08); }
+function playWarning()  { beep(440,.15,'square',.12); }
+
+// Adhan — melodic synthesis (Maqam Hijaz style)
+function playAdhan() {
+  if (!settings.adhan) return;
+  try {
+    const a = AC.get();
+    // الله أكبر melody
+    const notes = [
+      // Allahu Akbar x2
+      {f:392,d:.7,v:.3,delay:0},
+      {f:440,d:.4,v:.25,delay:.6},
+      {f:494,d:.8,v:.28,delay:.9},
+      {f:440,d:.5,v:.22,delay:1.6},
+      {f:392,d:.6,v:.25,delay:2.0},
+      {f:349,d:1.1,v:.28,delay:2.5},
+      // repeat
+      {f:392,d:.7,v:.3,delay:3.5},
+      {f:440,d:.4,v:.25,delay:4.1},
+      {f:494,d:.8,v:.28,delay:4.4},
+      {f:523,d:1.2,v:.3,delay:5.1},
+      {f:440,d:.6,v:.22,delay:6.2},
+      {f:392,d:1.0,v:.28,delay:6.7},
+      // Ashhadu
+      {f:440,d:.5,v:.25,delay:7.8},
+      {f:494,d:.4,v:.22,delay:8.2},
+      {f:523,d:.6,v:.28,delay:8.5},
+      {f:587,d:1.0,v:.3,delay:9.0},
+      {f:523,d:.5,v:.22,delay:9.9},
+      {f:494,d:.4,v:.2,delay:10.3},
+      {f:440,d:1.2,v:.25,delay:10.6},
+      // Hayya alas-salah
+      {f:349,d:.4,v:.22,delay:11.8},
+      {f:392,d:.5,v:.25,delay:12.1},
+      {f:440,d:.6,v:.28,delay:12.5},
+      {f:494,d:.4,v:.25,delay:13.0},
+      {f:523,d:1.0,v:.3,delay:13.3},
+      {f:494,d:.4,v:.2,delay:14.2},
+      {f:440,d:1.2,v:.25,delay:14.5},
+      // Final
+      {f:392,d:.5,v:.22,delay:15.8},
+      {f:349,d:.4,v:.2,delay:16.2},
+      {f:330,d:1.8,v:.28,delay:16.5},
+    ];
+    notes.forEach(n => beep(n.f, n.d, 'sine', n.v, n.delay));
+  } catch(e){}
+}
+
+// ══════════════════════════════════════════════
+//  STARS
+// ══════════════════════════════════════════════
+const canvas = document.getElementById('stars-canvas');
+const ctx = canvas.getContext('2d');
+let stars = [];
+function initStars() {
+  canvas.width = innerWidth; canvas.height = innerHeight;
+  stars = Array.from({length:160}, ()=>({
+    x:Math.random()*innerWidth, y:Math.random()*innerHeight*.65,
+    r:Math.random()*1.7, phase:Math.random()*Math.PI*2, spd:0.003+Math.random()*.005
+  }));
+}
+function drawStars() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const t = Date.now()/1000;
+  stars.forEach(s=>{
+    const a = .3+.7*Math.abs(Math.sin(t*s.spd+s.phase));
+    ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(245,215,142,${a})`; ctx.fill();
+  });
+  requestAnimationFrame(drawStars);
+}
+window.addEventListener('resize',initStars);
+initStars(); drawStars();
+
+// Unlock audio on first touch
+['click','touchstart','keydown'].forEach(e=>document.addEventListener(e,()=>{try{AC.get();}catch(_){}},{once:true}));
+
+// ══════════════════════════════════════════════
+//  SETTINGS
+// ══════════════════════════════════════════════
+const DEFAULTS = { sound:true, adhan:true, prayers:true, darkmode:false, hints:true, speed:8, difficulty:'normal' };
+let settings = {...DEFAULTS};
+
+function loadSettings() {
+  try { const s=localStorage.getItem('ramadan_settings'); if(s) settings={...DEFAULTS,...JSON.parse(s)}; } catch(_){}
+}
+function saveSettings() {
+  try { localStorage.setItem('ramadan_settings',JSON.stringify(settings)); } catch(_){}
+}
+function toggleSetting(key) {
+  settings[key]=!settings[key];
+  document.getElementById('toggle-'+key).classList.toggle('on', settings[key]);
+  saveSettings(); playClick();
+  if (key==='darkmode') applyDarkMode();
+}
+function applyDarkMode() {
+  document.body.style.background = settings.darkmode ? '#010509' : 'var(--night)';
+}
+function setSpeed(s) {
+  settings.speed=s; saveSettings(); playClick();
+  document.querySelectorAll('.speed-btn').forEach(b=>b.classList.remove('active'));
+  const ids={4:'sp-1',8:'sp-2',14:'sp-3',24:'sp-4'};
+  if(ids[s]) document.getElementById(ids[s]).classList.add('active');
+}
+function setDiff(d) {
+  settings.difficulty=d; saveSettings(); playClick();
+  document.querySelectorAll('.diff-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('df-'+d).classList.add('active');
+}
+function syncSettingsUI() {
+  ['sound','adhan','prayers','darkmode','hints'].forEach(k=>{
+    document.getElementById('toggle-'+k).classList.toggle('on',settings[k]);
+  });
+  setSpeed(settings.speed);
+  setDiff(settings.difficulty);
+}
+
+// ══════════════════════════════════════════════
+//  SHOP DATA
+// ══════════════════════════════════════════════
+const SHOP_ITEMS = [
+  // — قدرات العبادة —
+  { id:'tasbeeh',     cat:'worship', name:'المسبحة الذهبية',   emoji:'📿', price:80,
+    desc:'تزيد ثواب الذكر والتسبيح',
+    effect:'worship +5 عند كل ذكر',
+    bonus:{ worshipMult:1.3 }, badge:'new' },
+  { id:'quran_kareem',cat:'worship', name:'المصحف الكريم',     emoji:'📖', price:120,
+    desc:'تضاعف ثواب قراءة القرآن',
+    effect:'ثواب القرآن ×2',
+    bonus:{ quranMult:2 }, badge:'' },
+  { id:'sajjada',     cat:'worship', name:'السجادة المباركة',  emoji:'🟩', price:100,
+    desc:'تزيد ثواب الصلوات جميعها',
+    effect:'ثواب الصلاة +10',
+    bonus:{ prayerBonus:10 }, badge:'' },
+  { id:'miswak',      cat:'worship', name:'السواك',            emoji:'🪥', price:40,
+    desc:'ينظف القلب ويزيد العبادة',
+    effect:'عبادة +3 كل تيك',
+    bonus:{ worshipTick:3 }, badge:'' },
+  { id:'zamzam',      cat:'worship', name:'ماء زمزم',          emoji:'💎', price:200,
+    desc:'يقلل العطش ويزيد الثواب',
+    effect:'عطش -50% + عبادة +15',
+    bonus:{ thirstReduce:.5, worshipBonus:15 }, badge:'rare' },
+  { id:'tasbih_app',  cat:'worship', name:'تطبيق الأذكار',     emoji:'📱', price:60,
+    desc:'يذكّرك بالأذكار المهمة',
+    effect:'ثواب إضافي +5 كل ساعة',
+    bonus:{ hourlyBonus:5 }, badge:'' },
+
+  // — قدرات الطعام —
+  { id:'tamr_box',    cat:'food', name:'صندوق التمر الفاخر',   emoji:'🌴', price:50,
+    desc:'تمر عجوة مميز يعطي طاقة أكثر',
+    effect:'جوع -40 + طاقة +30',
+    bonus:{ suhoorBoost:true }, badge:'' },
+  { id:'soup_pot',    cat:'food', name:'قدر الشوربة الكبير',   emoji:'🍲', price:70,
+    desc:'شوربة رمضانية شهية لليوم كله',
+    effect:'جوع -50 عند الإفطار',
+    bonus:{ iftarFoodBoost:true }, badge:'' },
+  { id:'dates_gold',  cat:'food', name:'التمر الذهبي',         emoji:'✨', price:150,
+    desc:'تمر نادر يعطي طاقة هائلة وثواباً',
+    effect:'جوع -30 + عبادة +20 + طاقة +20',
+    bonus:{ datesBig:true }, badge:'rare' },
+  { id:'water_jug',   cat:'food', name:'إبريق الماء البارد',   emoji:'🫙', price:45,
+    desc:'ماء بارد منعش يذهب العطش',
+    effect:'عطش -60 + طاقة +10',
+    bonus:{ waterBoost:true }, badge:'' },
+  { id:'helba',       cat:'food', name:'شاي الحلبة',           emoji:'🍵', price:35,
+    desc:'مشروب رمضاني يقوي الجسم',
+    effect:'طاقة +25 + جوع -10',
+    bonus:{ energyDrink:true }, badge:'' },
+  { id:'qatayef',     cat:'food', name:'القطايف',              emoji:'🥞', price:80,
+    desc:'حلوى رمضانية شهيرة',
+    effect:'طاقة +35 + عبادة +5',
+    bonus:{ sweetBoost:true }, badge:'new' },
+
+  // — مهارات خاصة —
+  { id:'patience',    cat:'skills', name:'درع الصبر',          emoji:'🛡️', price:90,
+    desc:'يقلل تأثير الجوع والعطش',
+    effect:'الجوع يتراكم بنسبة 50%',
+    bonus:{ hungerRate:.5 }, badge:'' },
+  { id:'night_owl',   cat:'skills', name:'قيام الليل',         emoji:'🌟', price:110,
+    desc:'يضاعف ثواب التراويح والليل',
+    effect:'ثواب الليل ×2',
+    bonus:{ nightMult:2 }, badge:'' },
+  { id:'charity_hand',cat:'skills', name:'يد الخير',          emoji:'💝', price:75,
+    desc:'يضاعف أثر التصدق',
+    effect:'ثواب الصدقة ×2',
+    bonus:{ charityMult:2 }, badge:'' },
+  { id:'knowledge',   cat:'skills', name:'العلم النافع',       emoji:'📚', price:130,
+    desc:'يفتح أفعالاً جديدة',
+    effect:'يكشف أفعالاً مخفية',
+    bonus:{ unlockActions:true }, badge:'special' },
+  { id:'sleep_cap',   cat:'skills', name:'قبعة النوم',         emoji:'😴', price:55,
+    desc:'تحسّن جودة القيلولة',
+    effect:'القيلولة +35 طاقة بدل +20',
+    bonus:{ napBoost:true }, badge:'' },
+  { id:'dua_boost',   cat:'skills', name:'ساعة الإجابة',       emoji:'⏰', price:160,
+    desc:'يضاعف ثواب الدعاء في أوقاته',
+    effect:'ثواب الدعاء ×3',
+    bonus:{ duaMult:3 }, badge:'rare' },
+
+  // — مظهر وزينة —
+  { id:'lantern',     cat:'deco', name:'فانوس رمضاني',        emoji:'🏮', price:30,
+    desc:'يضيء اللعبة بنور رمضان',
+    effect:'يضيف فانوساً في الخلفية',
+    bonus:{ deco:'lantern' }, badge:'' },
+  { id:'thobe',       cat:'deco', name:'الثوب الرمضاني',      emoji:'👘', price:65,
+    desc:'لباس رمضاني أنيق',
+    effect:'يزيد ثواب العبادة +3',
+    bonus:{ worshipTick:3, deco:'thobe' }, badge:'' },
+  { id:'moon_charm',  cat:'deco', name:'تميمة الهلال',        emoji:'🌙', price:45,
+    desc:'تجلب الحظ في رمضان',
+    effect:'احتمال حدث إيجابي +20%',
+    bonus:{ luckBoost:.2 }, badge:'' },
+  { id:'kaaba_bg',    cat:'deco', name:'خلفية الكعبة',        emoji:'🕋', price:200,
+    desc:'خلفية الكعبة المشرفة',
+    effect:'يزيد الثواب +10% دائماً',
+    bonus:{ globalMult:1.1, deco:'kaaba' }, badge:'rare' },
+];
+
+const SHOP_CATS = [
+  { id:'worship', name:'🤲 عبادة' },
+  { id:'food',    name:'🍽️ طعام' },
+  { id:'skills',  name:'💡 مهارات' },
+  { id:'deco',    name:'✨ زينة' },
+];
+
+// ══════════════════════════════════════════════
+//  PLAYER INVENTORY
+// ══════════════════════════════════════════════
+let inventory = { owned:[], equipped:null, coins:0 };
+
+function loadInventory() {
+  try { const s=localStorage.getItem('ramadan_inv'); if(s) inventory={...inventory,...JSON.parse(s)}; } catch(_){}
+}
+function saveInventory() {
+  try { localStorage.setItem('ramadan_inv',JSON.stringify(inventory)); } catch(_){}
+}
+
+function getEquippedItem() {
+  if (!inventory.equipped) return null;
+  return SHOP_ITEMS.find(i=>i.id===inventory.equipped) || null;
+}
+function getBonus(key, def=1) {
+  const item = getEquippedItem();
+  if (!item) return def;
+  return item.bonus[key] !== undefined ? item.bonus[key] : def;
+}
+function hasBonusKey(key) {
+  const item = getEquippedItem();
+  return item && item.bonus[key] !== undefined;
+}
+
+function addCoins(n) {
+  inventory.coins = Math.max(0, (inventory.coins||0) + n);
+  saveInventory();
+  updateCoinsDisplay();
+  if (n > 0) {
+    const el = document.createElement('div');
+    el.className='coin-flash';
+    el.textContent=`+${n} 🪙`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),1400);
+  }
+}
+
+function updateCoinsDisplay() {
+  const v = Math.floor(inventory.coins||0);
+  document.getElementById('coins-display').textContent = v;
+  const sh = document.getElementById('shop-coins-display');
+  if (sh) sh.textContent = v;
+}
+
+// ══════════════════════════════════════════════
+//  SHOP UI
+// ══════════════════════════════════════════════
+let shopCat = 'worship';
+
+function openShop() {
+  playClick();
+  document.getElementById('shop-badge').style.display='none';
+  document.getElementById('shop-coins-display').textContent = Math.floor(inventory.coins||0);
+  renderShopTabs();
+  renderShopGrid();
+  document.getElementById('shop-overlay').classList.add('show');
+}
+
+function renderShopTabs() {
+  const el = document.getElementById('shop-tabs');
+  el.innerHTML = '';
+  SHOP_CATS.forEach(c=>{
+    const btn=document.createElement('button');
+    btn.className='shop-tab'+(c.id===shopCat?' active':'');
+    btn.textContent=c.name;
+    btn.onclick=()=>{ shopCat=c.id; playClick(); renderShopTabs(); renderShopGrid(); };
+    el.appendChild(btn);
+  });
+}
+
+function renderShopGrid() {
+  const grid = document.getElementById('shop-grid');
+  grid.innerHTML='';
+  const items = SHOP_ITEMS.filter(i=>i.cat===shopCat);
+  items.forEach(item=>{
+    const owned = inventory.owned.includes(item.id);
+    const equipped = inventory.equipped===item.id;
+    const canAfford = (inventory.coins||0) >= item.price;
+
+    const card=document.createElement('div');
+    card.className='shop-item'+(owned?' owned':'')+(equipped?' equipped':'');
+
+    let badgeHtml='';
+    if (item.badge==='new') badgeHtml='<div class="item-badge new-badge">جديد</div>';
+    else if (item.badge==='rare') badgeHtml='<div class="item-badge" style="background:#8E44AD;">نادر</div>';
+    else if (item.badge==='special') badgeHtml='<div class="item-badge" style="background:#2980B9;">مميز</div>';
+
+    let btnHtml='';
+    if (!owned) {
+      btnHtml=`<button class="equip-btn${canAfford?'':' locked'}" onclick="buyItem('${item.id}')">
+        ${canAfford?`🪙 ${item.price} عملة`:'🔒 لا تملك'}
+      </button>`;
+    } else if (equipped) {
+      btnHtml=`<button class="equip-btn equipped-btn" onclick="unequipItem()">✕ إزالة</button>`;
+    } else {
+      btnHtml=`<button class="equip-btn owned-btn" onclick="equipItem('${item.id}')">✅ تجهيز</button>`;
+    }
+
+    card.innerHTML=`
+      ${badgeHtml}
+      <span class="item-emoji">${item.emoji}</span>
+      <div class="item-name">${item.name}</div>
+      <div class="item-desc">${item.desc}</div>
+      <div class="item-effect">✦ ${item.effect}</div>
+      ${!owned?`<div class="item-price">🪙 ${item.price}</div>`:'<div class="item-price" style="background:rgba(39,174,96,.15);border-color:rgba(39,174,96,.4);color:#5EFF9A;">✅ مملوك</div>'}
+      ${btnHtml}
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function buyItem(id) {
+  const item = SHOP_ITEMS.find(i=>i.id===id);
+  if (!item) return;
+  if (inventory.owned.includes(id)) { notify('تملك هذا العنصر بالفعل ✅'); return; }
+  if ((inventory.coins||0) < item.price) { notify('عملاتك غير كافية! 🪙','error'); playError(); return; }
+  inventory.coins -= item.price;
+  inventory.owned.push(id);
+  saveInventory();
+  updateCoinsDisplay();
+  playPurchase();
+  notify(`🎉 اشتريت ${item.emoji} ${item.name}!`);
+  renderShopGrid();
+  // Auto-equip
+  equipItem(id);
+}
+
+function equipItem(id) {
+  inventory.equipped=id;
+  saveInventory();
+  playCollect();
+  renderShopGrid();
+  renderEquippedBar();
+  notify(`✅ تم تجهيز ${SHOP_ITEMS.find(i=>i.id===id)?.name}`);
+}
+
+function unequipItem() {
+  inventory.equipped=null;
+  saveInventory();
+  playClick();
+  renderShopGrid();
+  renderEquippedBar();
+}
+
+function renderEquippedBar() {
+  const item=getEquippedItem();
+  const bar=document.getElementById('equipped-bar');
+  if (!item) { bar.style.display='none'; return; }
+  bar.style.display='flex';
+  document.getElementById('eq-icon').textContent=item.emoji;
+  document.getElementById('eq-name').textContent=item.name;
+  document.getElementById('eq-label').textContent=item.desc;
+  document.getElementById('eq-bonus').textContent='✦ '+item.effect;
+}
+
+function renderBuffs() {
+  const item=getEquippedItem();
+  const row=document.getElementById('buffs-row');
+  row.innerHTML='';
+  if (!item) return;
+  const chip=document.createElement('div');
+  chip.className='buff-chip';
+  chip.innerHTML=`${item.emoji} ${item.name} مُفعَّل`;
+  row.appendChild(chip);
+}
+
+function closeOverlay(id) { playClick(); document.getElementById(id).classList.remove('show'); }
+
+// ══════════════════════════════════════════════
+//  SETTINGS UI
+// ══════════════════════════════════════════════
+function openSettings() {
+  playClick();
+  syncSettingsUI();
+  updateStatsDisplay();
+  document.getElementById('settings-overlay').classList.add('show');
+}
+
+function updateStatsDisplay() {
+  const el = document.getElementById('stats-display');
+  if (!state) return;
+  el.innerHTML = `
+    📅 اليوم: ${state.day} / 30<br>
+    ⭐ الثواب الكلي: ${Math.floor(state.score)}<br>
+    🪙 العملات: ${Math.floor(inventory.coins||0)}<br>
+    🤲 صلوات اليوم: ${Object.keys(state.prayedToday||{}).length} / 5<br>
+    🏆 الإنجازات: ${(state.badges||[]).length}<br>
+    🛍️ المشتريات: ${inventory.owned.length} / ${SHOP_ITEMS.length}
+  `;
+}
+
+function resetProgress() {
+  if (!confirm('هل تريد مسح كل البيانات؟')) return;
+  localStorage.clear();
+  inventory={owned:[],equipped:null,coins:0};
+  startGame();
+  closeOverlay('settings-overlay');
+}
+
+// ══════════════════════════════════════════════
+//  GAME STATE & PHASES
+// ══════════════════════════════════════════════
+let state = {};
+
+const PHASES = [
+  { id:'suhoor',   name:'السحور',    icon:'🌙', start:0,    end:200  },
+  { id:'fajr',     name:'الفجر',     icon:'🌅', start:200,  end:350  },
+  { id:'morning',  name:'الضحى',     icon:'☀️', start:350,  end:600  },
+  { id:'noon',     name:'الظهر',     icon:'🕛', start:600,  end:750  },
+  { id:'asr',      name:'العصر',     icon:'🌤️', start:750,  end:900  },
+  { id:'iftar',    name:'الإفطار',   icon:'🌇', start:900,  end:950  },
+  { id:'night',    name:'العشاء',    icon:'🌃', start:950,  end:1100 },
+  { id:'tarawih',  name:'التراويح',  icon:'🕌', start:1100, end:1300 },
+  { id:'latesleep',name:'النوم',     icon:'😴', start:1300, end:1440 },
+];
+
+// Difficulty modifiers
+const DIFF = {
+  easy:   { hungerRate:.4, thirstRate:.5 },
+  normal: { hungerRate:.3, thirstRate:.4 },
+  hard:   { hungerRate:.6, thirstRate:.7 },
+  ramadan:{ hungerRate:.9, thirstRate:1.1 },
+};
+
+// ── ALL ACTIONS ──
+const ALL_ACTIONS = [
+  { id:'eat_suhoor',    name:'تناول السحور',    emoji:'🍲', phase:['suhoor'],
+    energy:+20, hunger:-30, thirst:-20, worship:+5, score:10, coins:2, desc:'-30🍽️ -20💧 +20⚡' },
+  { id:'drink_water',   name:'شرب الماء',        emoji:'💧', phase:['suhoor','iftar','night'],
+    energy:+5, hunger:0, thirst:-25, worship:0, score:3, coins:1, desc:'-25💧 +5⚡' },
+  { id:'niyyah',        name:'نية الصوم',        emoji:'🤲', phase:['suhoor','fajr'],
+    energy:0, hunger:0, thirst:0, worship:+15, score:15, coins:3, desc:'+15🤲 بسم الله' },
+  { id:'fajr_prayer',   name:'صلاة الفجر',       emoji:'🕌', phase:['fajr','suhoor'],
+    energy:-5, hunger:0, thirst:0, worship:+25, score:25, coins:5, desc:'+25🤲 فريضة', isPrayer:true },
+  { id:'dhikr',         name:'ذكر وتسبيح',       emoji:'📿', phase:['morning','noon','asr','night','fajr'],
+    energy:+5, hunger:0, thirst:0, worship:+12, score:12, coins:2, desc:'+12🤲 +5⚡' },
+  { id:'quran',         name:'قراءة القرآن',     emoji:'📖', phase:['morning','noon','asr','night','fajr'],
+    energy:-5, hunger:0, thirst:0, worship:+20, score:20, coins:4, desc:'+20🤲' },
+  { id:'work',          name:'العمل والدراسة',   emoji:'💼', phase:['morning','noon'],
+    energy:-15, hunger:+8, thirst:+10, worship:0, score:8, coins:3, desc:'-15⚡ +8🍽️' },
+  { id:'nap',           name:'قيلولة رمضان',     emoji:'😴', phase:['noon','asr'],
+    energy:+20, hunger:+5, thirst:+5, worship:0, score:5, coins:1, desc:'+20⚡ سنة النبي ﷺ' },
+  { id:'charity',       name:'التصدق',           emoji:'💝', phase:['morning','noon','asr','night'],
+    energy:-2, hunger:0, thirst:0, worship:+18, score:18, coins:4, desc:'+18🤲 خير الناس' },
+  { id:'dhuhr',         name:'صلاة الظهر',       emoji:'🕌', phase:['noon'],
+    energy:-5, hunger:0, thirst:0, worship:+25, score:25, coins:5, desc:'+25🤲', isPrayer:true },
+  { id:'asr_prayer',    name:'صلاة العصر',       emoji:'🕌', phase:['asr'],
+    energy:-5, hunger:0, thirst:0, worship:+25, score:25, coins:5, desc:'+25🤲', isPrayer:true },
+  { id:'patience',      name:'الصبر على الجوع', emoji:'💪', phase:['noon','asr'],
+    energy:-5, hunger:0, thirst:0, worship:+10, score:10, coins:2, desc:'+10🤲' },
+  { id:'visit_family',  name:'زيارة الأهل',      emoji:'👨‍👩‍👧', phase:['morning','asr'],
+    energy:-8, hunger:+3, thirst:+3, worship:+8, score:8, coins:2, desc:'+8🤲 صلة الرحم' },
+  { id:'bad_talk',      name:'الثرثرة 🚫',        emoji:'🗣️', phase:['morning','noon','asr'],
+    energy:+2, hunger:+2, thirst:+2, worship:-15, score:-10, coins:0, desc:'-15🤲 مكروه' },
+  { id:'iftar_dates',   name:'إفطار بالتمر',     emoji:'🌴', phase:['iftar'],
+    energy:+10, hunger:-15, thirst:-5, worship:+10, score:15, coins:3, desc:'+10🤲 سنة النبي' },
+  { id:'iftar_soup',    name:'شوربة رمضان',      emoji:'🍜', phase:['iftar'],
+    energy:+15, hunger:-20, thirst:-15, worship:+5, score:8, coins:2, desc:'-20🍽️ -15💧' },
+  { id:'maghrib',       name:'صلاة المغرب',      emoji:'🕌', phase:['iftar'],
+    energy:-5, hunger:0, thirst:0, worship:+25, score:25, coins:5, desc:'+25🤲', isPrayer:true },
+  { id:'iftar_feast',   name:'وليمة الإفطار',   emoji:'🍽️', phase:['iftar','night'],
+    energy:+25, hunger:-40, thirst:-20, worship:0, score:5, coins:2, desc:'-40🍽️ -20💧' },
+  { id:'isha',          name:'صلاة العشاء',      emoji:'🕌', phase:['night'],
+    energy:-5, hunger:0, thirst:0, worship:+25, score:25, coins:5, desc:'+25🤲', isPrayer:true },
+  { id:'tarawih_prayer',name:'صلاة التراويح',   emoji:'🌟', phase:['tarawih','night'],
+    energy:-15, hunger:0, thirst:+5, worship:+35, score:35, coins:7, desc:'+35🤲' },
+  { id:'dua',           name:'الدعاء والتضرع',  emoji:'🤲', phase:['night','tarawih','iftar'],
+    energy:0, hunger:0, thirst:0, worship:+15, score:15, coins:3, desc:'+15🤲' },
+  { id:'sleep',         name:'النوم مبكراً',    emoji:'😴', phase:['latesleep','night','tarawih'],
+    energy:+35, hunger:+10, thirst:+8, worship:0, score:5, coins:1, desc:'+35⚡' },
+  { id:'itikaf',        name:'الاعتكاف',        emoji:'🕌', phase:['night','tarawih','latesleep'],
+    energy:-10, hunger:+5, thirst:+5, worship:+40, score:40, coins:8, desc:'+40🤲 خاص' },
+  { id:'phone_scroll',  name:'تصفح الهاتف',     emoji:'📱', phase:['suhoor','morning','noon','asr','night'],
+    energy:-5, hunger:0, thirst:0, worship:-5, score:-2, coins:0, desc:'-5🤲 تضييع وقت' },
+  // Hidden actions (unlocked by العلم النافع)
+  { id:'teach',         name:'تعليم الناس',     emoji:'📚', phase:['morning','noon'],
+    energy:-10, hunger:0, thirst:0, worship:+22, score:22, coins:5, desc:'+22🤲 نشر العلم', hidden:true },
+  { id:'tahajjud',      name:'صلاة التهجد',     emoji:'✨', phase:['latesleep'],
+    energy:-15, hunger:0, thirst:0, worship:+45, score:45, coins:9, desc:'+45🤲 قيام الليل', hidden:true, isPrayer:true },
+  { id:'sadaqah_jariya',name:'صدقة جارية',      emoji:'🏗️', phase:['morning','noon','asr'],
+    energy:-5, hunger:0, thirst:0, worship:+30, score:30, coins:6, desc:'+30🤲 صدقة مستمرة', hidden:true },
+];
+
+// ── EVENTS ──
+const RANDOM_EVENTS = [
+  { id:'ev_neighbor', title:'🏘️ جار محتاج',
+    desc:'جارك يحتاج مساعدة، هل تساعده؟',
+    choices:[
+      { text:'✅ أساعده بكل سرور', worship:+20, score:20, hunger:+5, energy:-10 },
+      { text:'❌ أنا مشغول', worship:-5, score:-5, energy:+2 }
+    ]},
+  { id:'ev_laylat', title:'✨ ليلة القدر',
+    desc:'إحدى ليالي العشر الأواخر! فرصة نادرة...',
+    choices:[
+      { text:'🌟 أحيي الليل بالعبادة', worship:+50, score:100, energy:-20, coins:20 },
+      { text:'😴 أنام مبكراً', worship:+5, score:5, energy:+25 }
+    ]},
+  { id:'ev_argument', title:'😤 خلاف مع الأهل',
+    desc:'نشأ خلاف بسيط، كيف تتعامل معه؟',
+    choices:[
+      { text:'😊 أتحمل وأصبر', worship:+20, score:20 },
+      { text:'😠 أرد بحدة', worship:-25, score:-20 }
+    ]},
+  { id:'ev_mosque', title:'🕌 دعوة للمسجد',
+    desc:'دعاك صديق للصلاة جماعة في المسجد',
+    choices:[
+      { text:'✅ أذهب معه', worship:+30, score:25, energy:-8, coins:5 },
+      { text:'🏠 أصلي في البيت', worship:+15, score:12 }
+    ]},
+  { id:'ev_zakah', title:'💰 زكاة الفطر',
+    desc:'حان وقت إخراج زكاة الفطر',
+    choices:[
+      { text:'✅ أخرجها في وقتها', worship:+35, score:35, coins:8 },
+      { text:'⏰ أؤخرها', worship:0, score:5 }
+    ]},
+  { id:'ev_gossip', title:'🗣️ غيبة في المجلس',
+    desc:'بدأ أصدقاؤك يغتابون شخصاً، ماذا تفعل؟',
+    choices:[
+      { text:'🚫 أوقفهم بلطف', worship:+25, score:25, coins:5 },
+      { text:'🤐 أسكت', worship:+5, score:5 },
+      { text:'😬 أشارك', worship:-30, score:-25 }
+    ]},
+  { id:'ev_found_money', title:'💵 وجدت مالاً',
+    desc:'وجدت محفظة في الطريق، ماذا تفعل؟',
+    choices:[
+      { text:'✅ أرجعها لأصحابها', worship:+30, score:30, coins:10 },
+      { text:'📢 أعلن عنها', worship:+15, score:15, coins:5 },
+    ]},
+  { id:'ev_child', title:'👦 طفل يتيم',
+    desc:'رأيت طفلاً يتيماً محتاجاً للمساعدة',
+    choices:[
+      { text:'💝 أتكفّل به', worship:+40, score:40, coins:8, energy:-5 },
+      { text:'🙏 أدعو له', worship:+10, score:10 },
+    ]},
+  { id:'ev_rain', title:'🌧️ المطر والدعاء',
+    desc:'نزل المطر! وقت مستجاب للدعاء',
+    choices:[
+      { text:'🤲 أدعو فوراً', worship:+25, score:25, coins:5 },
+      { text:'😴 أنام في البيت', worship:0, score:2, energy:+10 },
+    ]},
+  { id:'ev_shop_discount', title:'🛍️ عرض خاص!',
+    desc:'وجدت تخفيضاً رمضانياً! عملات مجانية!',
+    choices:[
+      { text:'🪙 استلم العرض', score:10, coins:25 },
+      { text:'🎁 تبرع بها', worship:+20, score:20, coins:5 },
+    ]},
+];
+
+// ── RANKS ──
+const RANKS = [
+  { min:0,    title:'مسلم مبتدئ 🌱',   msg:'كل يوم خطوة للأمام' },
+  { min:200,  title:'صائم صادق 🌙',    msg:'طريق الخير يبدأ بخطوة' },
+  { min:500,  title:'مؤمن متقن ⭐',    msg:'رمضانك مثمر' },
+  { min:1000, title:'حافظ القرآن 📖',   msg:'أنت من خير الناس' },
+  { min:2000, title:'الصائم القانت 🕌', msg:'رمضانك قُبل بإذن الله' },
+  { min:3500, title:'زاهد العصر 🌟',   msg:'نور من نور' },
+  { min:5000, title:'ولي الزمان ✨',    msg:'رمضانك استثنائي!' },
+];
+
+// ══════════════════════════════════════════════
+//  GAME ENGINE
+// ══════════════════════════════════════════════
+let gameTimer = null;
+let usedEvents = new Set();
+let currentEventId = null;
+let notifTimer = null;
+let gameStats = { totalDays:0, bestScore:0, totalPrayers:0 };
+
+function startGame() {
+  clearInterval(gameTimer);
+  state = {
+    day:1, tick:200,
+    hunger:20, thirst:15, energy:80, worship:50, score:0,
+    log:[], badges:[], prayedToday:{}, doneActionsToday:{},
+    eventShown:false, nextEventTick:280+Math.floor(Math.random()*300),
+    iftarShownToday:false, hungerWarned:false, energyWarned:false,
+    dayCoins:0,
+  };
+  usedEvents = new Set();
+  currentEventId = null;
+  document.getElementById('event-card').classList.remove('active');
+  document.getElementById('log-entries').innerHTML='';
+  document.getElementById('actions-grid').dataset.phase='';
+  closeOverlay('gameover-overlay');
+  document.getElementById('gameover-overlay').classList.remove('show');
+
+  addLog('مبارك عليك الشهر! 🌙','رمضان كريم');
+  renderEquippedBar();
+  renderBuffs();
+  renderActions();
+  updateUI();
+
+  gameTimer = setInterval(gameTick, 1000);
+}
+
+function gameTick() {
+  state.tick += settings.speed;
+
+  const phase = getCurrentPhase();
+  const diff = DIFF[settings.difficulty] || DIFF.normal;
+  const hungerMult = hasBonusKey('hungerRate') ? getBonus('hungerRate') : 1;
+
+  // Natural stat decay during fasting
+  if (['morning','noon','asr'].includes(phase.id)) {
+    state.hunger = Math.min(100, state.hunger + diff.hungerRate * hungerMult);
+    state.thirst = Math.min(100, state.thirst + diff.thirstRate);
+    state.energy = Math.max(0, state.energy - .1);
+  }
+
+  // Worship tick bonus from items
+  if (hasBonusKey('worshipTick')) {
+    state.worship = Math.min(100, state.worship + getBonus('worshipTick')*.05);
+  }
+
+  // Hourly bonus
+  if (hasBonusKey('hourlyBonus') && Math.floor(state.tick)%60===0) {
+    state.score += getBonus('hourlyBonus');
+  }
+
+  // Day end
+  if (state.tick >= 1440) {
+    state.tick = 0;
+    state.day++;
+    state.prayedToday = {};
+    state.doneActionsToday = {};
+    usedEvents = new Set();
+    state.nextEventTick = 200 + Math.floor(Math.random()*400);
+    state.eventShown = false;
+    state.iftarShownToday = false;
+    state.hungerWarned = false;
+    state.energyWarned = false;
+    document.getElementById('event-card').classList.remove('active');
+
+    // Daily coins reward
+    const dayBonus = Math.floor(state.worship * .3);
+    addCoins(dayBonus + 5);
+
+    if (state.day > 30) { endGame(); return; }
+
+    // Special nights
+    if ([21,23,25,27,29].includes(state.day)) {
+      showAdhan('ليلة مباركة ✨','قد تكون ليلة القدر! أحيها بالعبادة 🌟','✨');
+    }
+    addLog(`☀️ بداية اليوم ${state.day}`, 'يوم جديد');
+    state.worship = Math.max(30, state.worship - 5);
+    document.getElementById('actions-grid').dataset.phase='';
+  }
+
+  // Iftar adhan (MAGHRIB) — only once per day
+  const phaseNow = getCurrentPhase();
+  if (phaseNow.id === 'iftar' && !state.iftarShownToday) {
+    state.iftarShownToday = true;
+    playAdhan();
+    setTimeout(()=>{
+      if (settings.adhan) {
+        showAdhan('آذان المغرب 🌙', 'اللهم لك صمت وعلى رزقك أفطرت 🌙', '🌇');
+      }
+    }, 800);
+  }
+
+  // Prayer reminders
+  if (settings.prayers) {
+    if (phaseNow.id==='fajr' && !state.prayedToday['fajr_prayer'] && state.tick>210) {
+      if (Math.floor(state.tick)%120===0) notify('⏰ لا تفوتك صلاة الفجر! 🌅', true);
+    }
+    if (phaseNow.id==='noon' && !state.prayedToday['dhuhr'] && state.tick>620) {
+      if (Math.floor(state.tick)%120===0) notify('⏰ حان وقت صلاة الظهر! 🕛', true);
+    }
+  }
+
+  // Critical warnings
+  if (state.hunger >= 90 && !state.hungerWarned) {
+    state.hungerWarned = true; playWarning();
+    notify('⚠️ جوع شديد! اصبر على الإفطار...', false);
+  }
+  if (state.energy <= 10 && !state.energyWarned) {
+    state.energyWarned = true; playWarning();
+    notify('⚠️ طاقتك منخفضة جداً! خذ قيلولة', false);
+  }
+
+  // Random events
+  if (!state.eventShown && state.tick >= state.nextEventTick) {
+    triggerRandomEvent();
+    state.eventShown = true;
+  }
+
+  // Shop badge if new items affordable
+  const canBuy = SHOP_ITEMS.some(i=>!inventory.owned.includes(i.id)&&(inventory.coins||0)>=i.price);
+  document.getElementById('shop-badge').style.display = canBuy ? 'flex' : 'none';
+
+  updateUI();
+  renderScene();
+  renderActions();
+}
+
+function getCurrentPhase() {
+  const t = state.tick;
+  return PHASES.find(p=>t>=p.start&&t<p.end) || PHASES[0];
+}
+
+function getTimeString(tick) {
+  const m = tick%1440, h=Math.floor(m/60), mn=Math.floor(m%60);
+  return `${String(h).padStart(2,'0')}:${String(mn).padStart(2,'0')}`;
+}
+
+function getRank() {
+  for (let i=RANKS.length-1;i>=0;i--) if(state.score>=RANKS[i].min) return RANKS[i];
+  return RANKS[0];
+}
+
+function updateUI() {
+  const phase = getCurrentPhase();
+  document.getElementById('time-display').textContent = getTimeString(state.tick);
+  document.getElementById('phase-display').textContent = phase.name;
+  document.getElementById('time-icon').textContent = phase.icon;
+  document.getElementById('day-display').textContent = state.day;
+  document.getElementById('score-display').textContent = Math.floor(state.score);
+  document.getElementById('rank-title').textContent = getRank().title;
+  updateCoinsDisplay();
+
+  // Stat bars
+  ['hunger','thirst','worship','energy'].forEach(k=>{
+    const v=Math.max(0,Math.min(100,state[k]));
+    document.getElementById(`${k}-bar`).style.width=v+'%';
+    document.getElementById(`${k}-val`).textContent=Math.floor(v)+'%';
+    // Critical glow
+    const card=document.getElementById(`card-${k}`);
+    if(k==='hunger'||k==='thirst') card.classList.toggle('critical', v>85);
+    if(k==='energy') card.classList.toggle('critical', v<15);
+    if(k==='worship') card.classList.toggle('critical', v<20);
+  });
+
+  updatePrayerTimer(phase);
+}
+
+function updatePrayerTimer(phase) {
+  const idx = PHASES.findIndex(p=>p.id===phase.id);
+  const next = PHASES[(idx+1)%PHASES.length];
+  const rem = next.start - state.tick;
+  const total = next.start - phase.start;
+  const pct = Math.max(0,Math.min(100,((total-rem)/total)*100));
+  const prayerNames={suhoor:'الفجر',fajr:'الشروق',morning:'الظهر',noon:'العصر',asr:'الإفطار',iftar:'العشاء',night:'التراويح',tarawih:'السحور',latesleep:'الفجر'};
+  document.getElementById('next-prayer-label').textContent=(prayerNames[phase.id]||'الصلاة')+' بعد';
+  document.getElementById('prayer-progress').style.width=pct+'%';
+  const remMin=Math.floor(Math.max(0,rem)*60/1440);
+  const remSec=Math.floor(Math.max(0,rem)*60%60);
+  document.getElementById('prayer-time-left').textContent=`${remMin}:${String(remSec).padStart(2,'0')}`;
+}
+
+function renderScene() {
+  const phase = getCurrentPhase();
+  const scenes = {
+    suhoor:   { emoji:'🌙', text:'وقت السحور المبارك',             sub:'كل قبل أذان الفجر', bg:'🌙' },
+    fajr:     { emoji:'🌅', text:'صلاة الفجر - الصلاة خير من النوم', sub:'الفجر يبشر بيوم جديد', bg:'🌅' },
+    morning:  { emoji:'☀️', text:'نهار رمضان المبارك',             sub:'الصيام نور للروح والجسد', bg:'☀️' },
+    noon:     { emoji:'🕛', text:'منتصف النهار - حافظ على صيامك',   sub:'الجنة تزينت لأهلها', bg:'🕌' },
+    asr:      { emoji:'🌤️', text:'العصر - اقترب الإفطار!',          sub:'أجمل ساعات الصيام', bg:'🌤️' },
+    iftar:    { emoji:'🌇', text:'آذان المغرب! حل الإفطار 🎉',       sub:'اللهم لك صمت وعلى رزقك أفطرت', bg:'🌇' },
+    night:    { emoji:'🌃', text:'ليلة رمضانية مباركة',             sub:'الجنة تفتح أبوابها', bg:'🌙' },
+    tarawih:  { emoji:'🕌', text:'وقت صلاة التراويح',               sub:'من قام رمضان غفر له ما تقدم', bg:'🕌' },
+    latesleep:{ emoji:'🌟', text:'منتصف الليل - استعد للسحور',      sub:'نم لتقوم للسحور', bg:'✨' },
+  };
+  const s = scenes[phase.id] || scenes.morning;
+  const emoji = document.getElementById('scene-emoji');
+  if (emoji.textContent !== s.emoji) {
+    emoji.textContent = s.emoji;
+    emoji.style.animation = 'none';
+    setTimeout(()=>emoji.style.animation='',10);
+  }
+  document.getElementById('scene-text').textContent = s.text;
+  document.getElementById('scene-sub').textContent = s.sub;
+  document.getElementById('scene-bg').textContent = s.bg;
+}
+
+function renderActions() {
+  const phase = getCurrentPhase();
+  const grid = document.getElementById('actions-grid');
+  if (grid.dataset.phase === phase.id) return;
+  grid.dataset.phase = phase.id;
+  grid.innerHTML = '';
+
+  const hasKnowledge = inventory.owned.includes('knowledge');
+  const available = ALL_ACTIONS.filter(a=>{
+    if (a.hidden && !hasKnowledge) return false;
+    return a.phase.includes(phase.id);
+  });
+
+  available.forEach(action=>{
+    const btn = document.createElement('button');
+    btn.className = 'action-btn';
+
+    if (action.worship < 0) btn.classList.add('food-btn');
+    else if (action.worship >= 15) btn.classList.add('worship-btn');
+    else btn.classList.add('social-btn');
+
+    const prayerIds=['fajr_prayer','dhuhr','asr_prayer','maghrib','isha','tarawih_prayer','tahajjud'];
+    if (prayerIds.includes(action.id) && state.prayedToday[action.id]) btn.classList.add('disabled');
+
+    // Boosted indicator
+    if (hasBonusKey('worshipMult')&&action.worship>0) btn.classList.add('boosted');
+    if (hasBonusKey('quranMult')&&action.id==='quran') btn.classList.add('boosted');
+    if (hasBonusKey('charityMult')&&action.id==='charity') btn.classList.add('boosted');
+    if (hasBonusKey('nightMult')&&['tarawih_prayer','itikaf','tahajjud'].includes(action.id)) btn.classList.add('boosted');
+
+    let desc = settings.hints ? action.desc : '';
+    if (action.coins>0) desc += ` 🪙+${action.coins}`;
+
+    btn.innerHTML=`<span class="action-emoji">${action.emoji}</span><span class="action-name">${action.name}</span><span class="action-cost">${desc}</span>`;
+    btn.addEventListener('click',()=>doAction(action));
+    grid.appendChild(btn);
+  });
+}
+
+function applyBonus(action, stat, value) {
+  let v = value;
+  if (stat==='score') {
+    if (hasBonusKey('globalMult')) v = Math.round(v * getBonus('globalMult'));
+    if (hasBonusKey('worshipMult') && action.worship>0) v = Math.round(v * getBonus('worshipMult',.7));
+    if (hasBonusKey('quranMult') && action.id==='quran') v = Math.round(v * getBonus('quranMult'));
+    if (hasBonusKey('charityMult') && action.id==='charity') v = Math.round(v * getBonus('charityMult'));
+    if (hasBonusKey('nightMult') && ['tarawih_prayer','itikaf','tahajjud'].includes(action.id)) v = Math.round(v*getBonus('nightMult'));
+  }
+  if (stat==='worship' && hasBonusKey('prayerBonus') && action.isPrayer) v += getBonus('prayerBonus');
+  if (stat==='thirst' && hasBonusKey('thirstReduce')) v = Math.round(v * (1-getBonus('thirstReduce')));
+  if (stat==='energy' && action.id==='nap' && hasBonusKey('napBoost')) v = 35;
+  return v;
+}
+
+function doAction(action) {
+  const prayerIds=['fajr_prayer','dhuhr','asr_prayer','maghrib','isha','tarawih_prayer','tahajjud'];
+  if (prayerIds.includes(action.id) && state.prayedToday[action.id]) {
+    notify('✅ صليت هذه الصلاة اليوم', true); return;
+  }
+
+  let score = applyBonus(action,'score',action.score||0);
+  let worship = applyBonus(action,'worship',action.worship||0);
+  let thirst = applyBonus(action,'thirst',action.thirst||0);
+  let energy = applyBonus(action,'energy',action.energy||0);
+  let hunger = action.hunger||0;
+
+  // Special shop bonuses for food actions
+  if (action.id==='eat_suhoor' && hasBonusKey('suhoorBoost')) { hunger=-45; energy=35; }
+  if (action.id==='iftar_dates' && hasBonusKey('datesBig')) { hunger=-35; worship=Math.max(worship,25); energy+=15; score+=10; }
+  if ((action.id==='iftar_soup'||action.id==='iftar_feast') && hasBonusKey('iftarFoodBoost')) { hunger=-60; }
+  if (action.id==='drink_water' && hasBonusKey('waterBoost')) { thirst=-60; energy=applyBonus(action,'energy',15); }
+  if (action.id==='niyyah' && hasBonusKey('worshipBonus')) { worship+=getBonus('worshipBonus'); }
+  if (action.id==='dua' && hasBonusKey('duaMult')) { score=Math.round(score*getBonus('duaMult')); }
+  if (hasBonusKey('energyDrink') && action.id==='drink_water') { energy+=20; hunger-=10; }
+
+  state.hunger   = Math.max(0,Math.min(100, state.hunger + hunger));
+  state.thirst   = Math.max(0,Math.min(100, state.thirst + thirst));
+  state.energy   = Math.max(0,Math.min(100, state.energy + energy));
+  state.worship  = Math.max(0,Math.min(100, state.worship + worship));
+  state.score   += score;
+
+  // Coins
+  const coins = action.coins||0;
+  if (coins>0) addCoins(coins);
+
+  if (action.isPrayer) state.prayedToday[action.id]=true;
+
+  playCollect();
+  if (score > 0) notify(`${action.emoji} ${action.name} +${score} ⭐`+(coins>0?` 🪙+${coins}`:''));
+  else if (score < 0) { notify(`${action.emoji} ${action.name} ${score} نقاط 😔`, false); playError(); }
+  else notify(`${action.emoji} ${action.name}`);
+
+  addLog(action.emoji+' '+action.name, score>0?`+${score}⭐`:score<0?`${score}⭐`:'');
+  updateUI();
+  document.getElementById('actions-grid').dataset.phase='';
+  renderActions();
+  checkBadges();
+}
+
+function checkBadges() {
+  const pFive=['fajr_prayer','dhuhr','asr_prayer','maghrib','isha'].filter(p=>state.prayedToday[p]);
+  if (pFive.length===5 && !state.badges.includes('5prayers')) {
+    state.badges.push('5prayers');
+    state.score+=50; addCoins(15); playSuccess();
+    notify('🏆 إنجاز: الصلوات الخمس في يوم واحد! +50⭐ 🪙+15', true, 4000);
+  }
+  if (state.worship>=90 && !state.badges.includes('highworship')) {
+    state.badges.push('highworship');
+    state.score+=30; addCoins(10); playSuccess();
+    notify('🏆 إنجاز: خاشع ومتقرب! +30⭐ 🪙+10', true, 3500);
+  }
+  if (state.score>=1000 && !state.badges.includes('1k')) {
+    state.badges.push('1k'); addCoins(20); playSuccess();
+    notify('🌟 ألف ثواب! +20 عملة 🪙', true, 3500);
+  }
+  if (state.score>=3000 && !state.badges.includes('3k')) {
+    state.badges.push('3k'); addCoins(50); playSuccess();
+    notify('👑 ثلاثة آلاف ثواب! +50 عملة 🪙', true, 4000);
+  }
+  if (inventory.owned.length>=5 && !state.badges.includes('collector')) {
+    state.badges.push('collector'); addCoins(30); playSuccess();
+    notify('🛍️ إنجاز: جامع! امتلكت 5 عناصر. +30 عملة 🪙', true, 3500);
+  }
+}
+
+function triggerRandomEvent() {
+  const luckBoost = hasBonusKey('luckBoost') ? getBonus('luckBoost') : 0;
+  const available = RANDOM_EVENTS.filter(e=>!usedEvents.has(e.id));
+  if (!available.length) return;
+  const ev = available[Math.floor(Math.random()*available.length)];
+  usedEvents.add(ev.id);
+  currentEventId = ev.id;
+  document.getElementById('event-title').textContent = ev.title;
+  document.getElementById('event-desc').textContent = ev.desc;
+  const div = document.getElementById('event-choices');
+  div.innerHTML='';
+  ev.choices.forEach(ch=>{
+    const btn=document.createElement('button');
+    btn.className='event-choice'; btn.textContent=ch.text;
+    btn.addEventListener('click',()=>resolveEvent(ch, luckBoost));
+    div.appendChild(btn);
+  });
+  document.getElementById('event-card').classList.add('active');
+}
+
+function resolveEvent(choice, luckBoost=0) {
+  document.getElementById('event-card').classList.remove('active');
+  if (choice.worship) state.worship=Math.max(0,Math.min(100,state.worship+choice.worship));
+  if (choice.energy) state.energy=Math.max(0,Math.min(100,state.energy+choice.energy));
+  if (choice.hunger) state.hunger=Math.max(0,Math.min(100,state.hunger+choice.hunger));
+  let score = choice.score||0;
+  if (luckBoost>0 && score>0) score=Math.round(score*(1+luckBoost));
+  if (score) state.score+=score;
+  if (choice.coins) addCoins(choice.coins);
+  const msg = score>0?`🌟 اختيار موفق! +${score}⭐`+(choice.coins?` 🪙+${choice.coins}`:''):score<0?`😔 الاختيار الأفضل كان غيره`:'✅ تم';
+  notify(msg);
+  if (score>0) playCollect(); else if(score<0) playError();
+  state.nextEventTick=state.tick+300+Math.floor(Math.random()*400);
+  state.eventShown=false;
+  addLog('🎯 حدث رمضاني', score>0?`+${score}⭐`:'');
+  updateUI();
+}
+
+function showAdhan(text, sub, icon='🌙') {
+  document.getElementById('adhan-moon').textContent=icon;
+  document.getElementById('adhan-text').textContent=text;
+  document.getElementById('adhan-sub').textContent=sub;
+  // Show/hide arabic text based on type
+  const ar=document.getElementById('adhan-arabic');
+  ar.style.display=(icon==='🌇'||icon==='🌙')?'block':'none';
+  document.getElementById('adhan-overlay').classList.add('show');
+}
+
+document.getElementById('adhan-btn').addEventListener('click',()=>{
+  document.getElementById('adhan-overlay').classList.remove('show');
+  state.score+=5; state.worship=Math.min(100,state.worship+10);
+  addCoins(2); playCollect();
+  addLog('🤲 ذكر عند الأذان','+5⭐');
+  updateUI();
+});
+
+function addLog(action,score='') {
+  const entry=document.createElement('div'); entry.className='log-entry';
+  const phase=getCurrentPhase();
+  entry.innerHTML=`<span class="log-time">${phase.icon}</span><span>${action}</span>${score?`<span style="color:var(--gold);margin-right:auto;">${score}</span>`:''}`;
+  const ld=document.getElementById('log-entries');
+  ld.insertBefore(entry,ld.firstChild);
+  while(ld.children.length>25) ld.removeChild(ld.lastChild);
+}
+
+function notify(msg,positive=true,duration=2500) {
+  const el=document.getElementById('notification');
+  el.textContent=msg;
+  el.style.color=positive?'var(--gold-light)':'#ff9999';
+  el.classList.add('show');
+  clearTimeout(notifTimer);
+  notifTimer=setTimeout(()=>el.classList.remove('show'),duration);
+}
+
+function endGame() {
+  clearInterval(gameTimer);
+  const rank=getRank();
+  document.getElementById('final-score').textContent=Math.floor(state.score);
+  document.getElementById('final-rank').textContent=rank.title;
+  document.getElementById('final-message').textContent=rank.msg+' — عيدكم مبارك! 🌙✨';
+  const bd=document.getElementById('badges-earned'); bd.innerHTML='';
+  const badgeNames={'5prayers':'🕌 محافظ على الصلوات','highworship':'⭐ عابد خاشع','1k':'🌟 ألف حسنة','3k':'👑 ثلاثة آلاف','collector':'🛍️ جامع'};
+  state.badges.forEach(b=>{
+    const s=document.createElement('span');s.className='badge';
+    s.textContent=badgeNames[b]||b; bd.appendChild(s);
+  });
+  // Give final coins
+  addCoins(Math.floor(state.score*.05));
+  playSuccess();
+  document.getElementById('gameover-overlay').classList.add('show');
+}
+
+function switchTab(tab) {
+  ['game','shop','stats','settings'].forEach(t=>document.getElementById('bn-'+t)?.classList.remove('active'));
+  document.getElementById('bn-'+tab)?.classList.add('active');
+  if (tab==='stats') openSettings();
+}
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+loadSettings();
+loadInventory();
+applyDarkMode();
+updateCoinsDisplay();
+startGame();
+</script>
+</body>
+</html>
